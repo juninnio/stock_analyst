@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Analyst</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            background: #343541;
+            color: #ececf1;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            height: 100%;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chat-box {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: 100px;
+        }
+
+        .message {
+            word-wrap: break-word;
+        }
+
+        .user {
+            align-self: flex-end;
+            background: #0a84ff;
+            color: white;
+            padding: 14px 18px;
+            border-radius: 8px;
+            max-width: 75%;
+            font-size: 16px;
+        }
+
+        .bot {
+            align-self: flex-start;
+            background: transparent;
+            text-align: left;
+            padding: 6px 2px;
+            max-width: 75%;
+            font-size: 17px;
+            line-height: 1.75;
+            color: #ececf1;     
+        }
+
+        /* Adjust markdown rendering for better flow */
+        .bot p {
+            margin: 11px 0;  /* balanced gap for paragraphs */
+        }
+
+        .bot ul, .bot ol {
+            margin: 10px 0; /* a little breathing room for lists */
+            padding-left: 20px;
+        }
+
+        .bot li {
+            margin: 4px 0;  /* prevents bullet items from feeling cramped */
+        }
+
+
+        .divider {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 8px 0 0 0;
+        }
+
+        .input-container {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .input-inner {
+            display: flex;
+            background: #40414f;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            padding: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 12px;
+            color: #ececf1;
+            font-size: 16px;
+        }
+
+        button {
+            border: none;
+            background: #0a84ff;
+            color: white;
+            border-radius: 8px;
+            padding: 0 16px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        button:hover {
+            background: #006be6;
+        }
+
+        .thinking::after {
+            content: ' ';
+            display: inline-block;
+            width: 1em;
+            text-align: left;
+            animation: dots 1.2s steps(3, end) infinite;
+        }
+
+        @keyframes dots {
+            0% { content: ''; }
+            33% { content: '.'; }
+            66% { content: '..'; }
+            100% { content: '...'; }
+        }
+</style>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-box" id="chatBox"></div>
+
+    <div class="input-container">
+        <div class="input-inner">
+            <input type="text" id="userInput" placeholder="Type a stock symbol like AAPL...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const input = document.getElementById("userInput");
+
+    input.addEventListener("keydown", function(event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
+
+    async function sendMessage() {
+        let text = input.value.trim();
+        if (!text) return;
+
+        addMessage(text, "user");
+        input.value = "";
+
+        // Create bot message placeholder and apply 'thinking' animation
+        let processingMsg = addMessage("Generating Response", "bot");
+        processingMsg.classList.add("thinking");
+
+        try {
+            const res = await fetch("/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: text })
+            });
+            const data = await res.json();
+
+            // Stop animation
+            processingMsg.classList.remove("thinking");
+
+            // Render markdown
+            processingMsg.innerHTML = marked.parse(data.reply);
+
+            // Add divider under each assistant reply
+            let divider = document.createElement("div");
+            divider.className = "divider";
+            chatBox.appendChild(divider);
+
+        } catch (error) {
+            processingMsg.classList.remove("thinking");
+            processingMsg.textContent = "⚠️ Error fetching analysis. Please try again.";
+        }
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function addMessage(text, sender) {
+        let chatBox = document.getElementById("chatBox");
+        let message = document.createElement("div");
+        message.className = "message " + sender;
+
+        if (sender === "bot") {
+            message.textContent = text;  // Default plain text while waiting
+        } else {
+            message.textContent = text;
+        }
+
+        chatBox.appendChild(message);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return message;
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,8 @@
+Flask
+requests
+pandas
+pandas-ta
+numpy
+scikit-learn
+tensorflow
+google-generativeai
