@@ -37,9 +37,10 @@ This project integrates traditional financial analysis with modern AI models to 
 ## Setup Instructions
 1. Clone repo
 2. Install dependencies (pip install -r requirements.txt)
-3. Create .env file for API keys or hard-code the API keys in stock_analyst.py
-4. Start flask server
-5. Open the link in your browser
+3. Get AlphaVantage API key and Gemini LLM API key
+4. Create .env file for API keys or hard-code the API keys in stock_analyst.py
+5. Start flask server
+6. Open the link in your browser
 
 ## Features
 1. Stock analysis with real-time data
