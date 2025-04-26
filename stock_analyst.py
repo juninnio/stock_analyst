@@ -8,7 +8,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras import layers
 from tensorflow.keras.callbacks import EarlyStopping
 import tensorflow as tf
-
+import plotly.graph_objects as go
+import plotly.express as px
 
 
 class Fundamental_Analyst:
@@ -20,6 +21,7 @@ class Fundamental_Analyst:
         self.balance_sheet = self.get_balance_sheet(symbol)
         self.cash_flow = self.get_cash_flow(symbol)
         self.overview = self.get_overview(symbol)
+        self.financial_data = self.metrics()
 
 
     def get_income_statement(self, symbol):
@@ -73,70 +75,98 @@ class Fundamental_Analyst:
     
     def metrics(self):
         
-        income_statement = self.income_statement['annualReports'][0]
-        last_balance_sheet = self.balance_sheet['annualReports'][1]
-        balance_sheet = self.balance_sheet['annualReports'][0]
-        overview = self.overview
-
-
-
-        """if len(annual_reports) >=10:
-            financials = [annual_reports[i] for i in range(10)]
-        elif 5<= len(annual_reports) < 10:
-            financials = [annual_reports[i] for i in range(5)]
+        if len(self.income_statement['annualReports']) < 6:
+            r = len(self.income_statement['annualReports'])
         else:
-            financials = [annual_reports[i] for i in range(len(annual_reports))]"""
+            r = 5
+
+        data ={
+                "Year":[],
+                "Revenue":[],
+                "Net Income":[],
+                "Gross Profit Margin":[],
+                "Operating Profit Margin":[],
+                "Net Profit Margin":[],
+                "Return on Assets":[],
+                "Return on Equity":[],
+                "Current Ratio":[],
+                "Quick Ratio":[],
+                "Debt-to-Equity Ratio": [],
+                "Debt-to-Assets Ratio": [],
+                "P/E Ratio": [],
+                "P/B Ratio":[],
+                "P/S Ratio":[],
+                "Dividend Yield":[],
+                "EPS": [],
+            }
+
+        for i in range(r):
+            income_statement = self.income_statement['annualReports'][i]
+            last_balance_sheet = self.balance_sheet['annualReports'][i+1]
+            balance_sheet = self.balance_sheet['annualReports'][i]
+            overview = self.overview
+
+            revenue = float(income_statement['totalRevenue'])
+            year = pd.to_datetime(income_statement['fiscalDateEnding']).year
+            net_income = float(income_statement['netIncome'])
+
         
-        #profitability
-        gross_profit_margin = (float(income_statement['grossProfit']))/float(income_statement['totalRevenue'])
+            #profitability
+            gross_profit_margin = (float(income_statement['grossProfit']))/float(income_statement['totalRevenue'])
 
-        operating_profit_margin = (float(income_statement['operatingIncome']))/float(income_statement['totalRevenue'])
+            operating_profit_margin = (float(income_statement['operatingIncome']))/float(income_statement['totalRevenue'])
 
-        net_profit_margin = (float(income_statement['netIncome']))/float(income_statement['totalRevenue'])
+            net_profit_margin = (float(income_statement['netIncome']))/float(income_statement['totalRevenue'])
 
-        roa = (float(income_statement['netIncome']))/(float(balance_sheet['totalAssets'])+float(last_balance_sheet['totalAssets']))/2
+            roa = (float(income_statement['netIncome']))/(float(balance_sheet['totalAssets'])+float(last_balance_sheet['totalAssets']))/2
 
-        roe = (float(income_statement['netIncome']))/((float(balance_sheet['totalShareholderEquity'])+float(last_balance_sheet['totalShareholderEquity'])))/2
+            roe = (float(income_statement['netIncome']))/((float(balance_sheet['totalShareholderEquity'])+float(last_balance_sheet['totalShareholderEquity'])))/2
 
-        #liquidity 
-        curr_ratio = float(balance_sheet['totalCurrentAssets'])/float(last_balance_sheet['totalCurrentLiabilities'])
+            #liquidity 
+            curr_ratio = float(balance_sheet['totalCurrentAssets'])/float(last_balance_sheet['totalCurrentLiabilities'])
 
-        cash = float(balance_sheet['cashAndCashEquivalentsAtCarryingValue'])
-        short_term_investments = float(balance_sheet['shortTermInvestments'])
-        accounts_receivable = float(balance_sheet['currentNetReceivables']) if balance_sheet['currentNetReceivables'] != 'None' else 0
+            cash = float(balance_sheet['cashAndCashEquivalentsAtCarryingValue'])
+            short_term_investments = float(balance_sheet['shortTermInvestments'])
+            accounts_receivable = float(balance_sheet['currentNetReceivables']) if balance_sheet['currentNetReceivables'] != 'None' else 0
 
-        quick_ratio = (cash +short_term_investments +accounts_receivable)/float(balance_sheet['totalCurrentLiabilities'])
+            quick_ratio = (cash +short_term_investments +accounts_receivable)/float(balance_sheet['totalCurrentLiabilities'])
 
-        #solvency
-        de_ratio = float(balance_sheet['totalLiabilities'])/float(balance_sheet['totalShareholderEquity'])
-        da_ratio = float(balance_sheet['totalLiabilities'])/float(balance_sheet['totalAssets'])
+            #solvency
+            de_ratio = float(balance_sheet['totalLiabilities'])/float(balance_sheet['totalShareholderEquity'])
+            da_ratio = float(balance_sheet['totalLiabilities'])/float(balance_sheet['totalAssets'])
 
-        #valuation
-        pe = float(overview['PERatio'])
-        pb = float(overview['PriceToBookRatio'])
-        ps = float(overview['PriceToSalesRatioTTM'])
-        dividend_yield = float(overview['DividendYield']) if overview['DividendYield'] != "None" else 0
+            #valuation
+            pe = float(overview['PERatio'])
+            pb = float(overview['PriceToBookRatio'])
+            ps = float(overview['PriceToSalesRatioTTM'])
+            dividend_yield = float(overview['DividendYield']) if overview['DividendYield'] != "None" else 0
 
-        metrics ={
-            "Gross Profit Margin": f"{gross_profit_margin*100:.2f}%",
-            "Operating Profit Margin":f"{operating_profit_margin*100:.2f}%",
-            "Net Profit Margin":f"{net_profit_margin*100:.2f}%",
-            "Return on Assets":f"{roa*100:.2f}%",
-            "Return on Equity":f"{roe*100:.2f}%",
-            "Current Ratio":curr_ratio,
-            "Quick Ratio":quick_ratio,
-            "Debt-to-Equity Ratio": de_ratio,
-            "Debt-to-Assets Ratio": da_ratio,
-            "P/E": pe,
-            "P/B Ratio":pb,
-            "P/S Ratio":ps,
-            "Dividend Yield":dividend_yield*100
-        }
+            eps = float(income_statement['netIncome'])/float(balance_sheet['commonStockSharesOutstanding'])
 
-        return metrics
+            data['Revenue'].append(revenue)
+            data['Year'].append(year)
+            data['Net Income'].append(net_income)
+            data["Gross Profit Margin"].append(gross_profit_margin*100)
+            data["Operating Profit Margin"].append(operating_profit_margin*100)
+            data["Net Profit Margin"].append(net_profit_margin*100)
+            data["Return on Assets"].append(roa*100)
+            data["Return on Equity"].append(roe*100)
+            data["Current Ratio"].append(curr_ratio)
+            data["Quick Ratio"].append(quick_ratio)
+            data["Debt-to-Equity Ratio"].append(de_ratio)
+            data["Debt-to-Assets Ratio"].append(da_ratio)
+            data["P/E Ratio"].append(pe)
+            data["P/B Ratio"].append(pb)
+            data["P/S Ratio"].append(ps)
+            data["Dividend Yield"].append(dividend_yield*100)
+            data["EPS"].append(round(eps,2))
+
+
+        df = pd.DataFrame(data=data)
+        return df
         
     def get_metrics(self):
-        return self.metrics()
+        return dict(self.financial_data.loc[0])
     
     def get_financials(self):
         report_key = "annualReports"
@@ -148,9 +178,36 @@ class Fundamental_Analyst:
         return {'Company Overview': self.overview, "Balance Sheet":balance_sheet, "Cash Flow":cash_flow,
                 'Income Statement': income_statement}
 
+    
+    def make_line_plot(self, x_var, y_var, title, x_title=None, y_title=None):
+        #Revenue vs Net Profit
+        fig1 = px.line(self.financial_data, x=x_var, y=y_var)
+        fig1.update_layout(
+            title=title,
+            xaxis=dict(
+              tickmode='array',
+              tickvals= self.financial_data['Year'].values  
+            ),
+            xaxis_title = f"{x_var if not x_title else x_title}",
+            yaxis_title = f"{y_var if not y_title else y_title}",
+            template = 'plotly_dark',
+            height=500,
+            width=1000,
+            margin=dict(l=50, r=50, b=50, t=50, pad=4)
+        )
+
+        html_str = fig1.to_html(
+            full_html=False,
+            include_plotlyjs = False,
+            config = {'responsive': True}
+        )
+
+        return html_str
+
+        
 
     def __str__(self):
-        return f"{self.get_metrics()}"
+        return f"{self.financial_data}"
 
 
 class TechnicalAnalysis:
@@ -169,8 +226,15 @@ class TechnicalAnalysis:
         self.scaled_data, self.scaler = self.scale_data(self.data)
         self.model, self.test_loss , self.test_mae = self.train_test_model()
         self.next_close_pred = self.get_prediction()
-        
+    
 
+    def get_splits(self):
+        split_url = f"https://www.alphavantage.co/query?function=SPLITS&symbol={self.symbol}&apikey={self.API_KEY}"
+        r = requests.get(split_url)
+        split_data = r.json()
+        splits = split_data['data'][::-1]
+        return splits
+        
 
     def get_data(self):
         """
@@ -180,6 +244,16 @@ class TechnicalAnalysis:
         stock_data = pd.read_csv(stock_url)
         stock_data['timestamp'] = pd.to_datetime(stock_data['timestamp'])
         stock_data = stock_data[::-1].reset_index(drop=True)
+
+        splits = self.get_splits()
+        for split in splits:
+            eff_date = pd.to_datetime(split['effective_date'])
+            factor = float(split['split_factor'])
+
+            temp =stock_data['timestamp'] < eff_date
+            stock_data.loc[temp, ['open','high','low','close']] = stock_data.loc[temp, ['open','high','low','close']] / factor 
+            stock_data.loc[temp, 'volume'] = stock_data.loc[temp,'volume'] * factor
+
 
         stock_data["SMA50"] = ta.sma(stock_data['close'], length=50)
         stock_data["SMA100"] = ta.sma(stock_data['close'], length=100)
@@ -281,9 +355,48 @@ class TechnicalAnalysis:
         
         return pred[0]
     
+    def make_historical_plot(self):
+        data = self.data[self.data['timestamp'] > self.data['timestamp'].values[-1] - pd.to_timedelta(365*5, unit='d')]
+        fig = go.Figure(data=[go.Candlestick(x=data['timestamp'],
+                                    open=data['open'],
+                                    high=data['high'],
+                                    low=data['low'],
+                                    close=data['close'])])
+        fig.update_layout(
+        title=f"{self.symbol} Stock Price - Last 5 Years",
+        xaxis_title="Date",
+        yaxis_title="Price ($)",
+        xaxis_rangeslider_visible=False,
+        template="plotly_dark",  # Dark theme to match your UI
+        height=500,
+        width=1000,
+        margin=dict(l=50, r=50, b=50, t=50, pad=4)
+    )
+    
+        # Important: Return the HTML directly without using show()
+        html_str = fig.to_html(
+            full_html=False,
+            include_plotlyjs=False,
+            config={'responsive': True}
+    )
+        return html_str
+    
 
     def __str__(self):
         return(f"""Test MSE (loss): {self.test_loss:.4f}
 Test MAE: {self.test_mae:.4f}
 Predicted next close price: {self.next_close_pred}""")
+    
+"""API_KEY = "EWFT2QD72ZJLZE32"
 
+fd = Fundamental_Analyst('AAPL', API_KEY)
+a = fd.get_metrics()
+response = ""
+for key,value in a.items():
+           
+    if key not in ['Gross Profit Margin', 'Operating Profit Margin', 'Net Profit Margin','Return on Assets','Return on Equity']:
+        response += f"- {key}: {round(value, 2) if isinstance(value, float) else value}\n"
+    else:
+        response += f"- {key}: {round(value, 2)}% \n"
+
+fd.make_line_plot('year',['Revenue','Net Income'],'Revenue vs Net Income','Year','Amount')"""
